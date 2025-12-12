@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { run } from "@fal-ai/serverless-client";
+import { createFalClient } from "@fal-ai/serverless-client";
 
 function mustEnv(name: string) {
   const v = process.env[name];
@@ -11,11 +11,10 @@ function mustEnv(name: string) {
 
 export async function POST(req: Request) {
   try {
-    // ✅ API KEY SADECE BACKEND'DE
     const FAL_KEY = mustEnv("FAL_KEY");
 
-    // fal client ayarı
-    run.config({ credentials: FAL_KEY });
+    // ✅ Doğru kullanım: client oluştur
+    const fal = createFalClient({ credentials: FAL_KEY });
 
     const body = await req.json();
     const { modelImage, tshirtImage, generateVideo } = body ?? {};
@@ -27,9 +26,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ GERÇEK FAL TRY-ON ÇAĞRISI
-    // Not: Model id'n farklıysa bu satırı değiştiririz.
-    const result: any = await run("fal-ai/kling/v1-5/kolors-virtual-try-on", {
+    // ✅ Gerçek fal try-on çağrısı
+    const result: any = await fal.run("fal-ai/kling/v1-5/kolors-virtual-try-on", {
       input: {
         model_image: modelImage,
         garment_image: tshirtImage,
@@ -37,7 +35,6 @@ export async function POST(req: Request) {
       },
     });
 
-    // Modeller farklı alan isimleri döndürebilir → güvenli şekilde çekiyoruz
     const imageUrl =
       result?.image?.url ||
       result?.image_url ||
