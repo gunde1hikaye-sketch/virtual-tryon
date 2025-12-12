@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
-        { error: "Unauthorized", message: "Missing token" },
+        { error: "unauthorized", message: "Missing token" },
         { status: 401 }
       );
     }
@@ -20,42 +20,35 @@ export async function POST(req: Request) {
     const token = authHeader.replace("Bearer ", "");
 
     // ======================
-    // SUPABASE SERVER CLIENT
-    // ======================
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    // ======================
     // USER DOĞRULA
     // ======================
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser(token);
+    } = await supabaseAdmin.auth.getUser(token);
 
     if (userError || !user) {
       return NextResponse.json(
-        { error: "Unauthorized", message: "Invalid session" },
+        { error: "unauthorized", message: "Invalid session" },
         { status: 401 }
       );
     }
 
     // ======================
-    // 🔥 KREDİ DÜŞ
+    // 🔥 KREDİ DÜŞ (RPC)
     // ======================
-    const { data, error } = await supabase.rpc("consume_credit");
+    const { data: remainingCredits, error: creditError } =
+      await supabaseAdmin.rpc("consume_credit");
 
-    if (error) {
-      console.error("CREDIT ERROR:", error);
+    if (creditError) {
+      console.error("❌ CREDIT ERROR:", creditError);
       return NextResponse.json(
         { error: "credit_error", message: "Credit check failed" },
         { status: 500 }
       );
     }
 
-    if (data === -1) {
+    if (remainingCredits === -1) {
       return NextResponse.json(
         {
           error: "no_credits",
@@ -65,21 +58,21 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log("✅ CREDIT USED. REMAINING:", data);
+    console.log("✅ CREDIT USED. REMAINING:", remainingCredits);
 
     // ======================
     // ⏩ BURADAN SONRASI TRY-ON
-    // (fal.ai / kling vs.)
+    // (fal.ai / kling burada çalışacak)
     // ======================
 
     return NextResponse.json({
       ok: true,
-      remainingCredits: data,
+      remainingCredits,
     });
   } catch (err: any) {
-    console.error("SERVER ERROR:", err);
+    console.error("❌ SERVER ERROR:", err);
     return NextResponse.json(
-      { error: "server_error", message: err.message },
+      { error: "server_error", message: err?.message ?? "Unknown error" },
       { status: 500 }
     );
   }
