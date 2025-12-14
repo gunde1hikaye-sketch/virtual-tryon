@@ -12,6 +12,7 @@ import { useToast } from '@/components/Toast';
 
 import { generateTryOn, fileToBase64 } from '@/lib/api';
 import { useUser } from '@/lib/useUser';
+import { useCredits } from '@/lib/useCredits';
 
 /* ---------------- TYPES ---------------- */
 
@@ -33,9 +34,14 @@ type HistoryItem = {
 };
 
 export default function Home() {
-  /* 🔐 AUTH */
+  /* 🔐 ROUTER */
   const router = useRouter();
+
+  /* 🔐 AUTH */
   const { user, loading: userLoading } = useUser();
+
+  /* 💳 CREDITS */
+  const { credits, loading: creditsLoading } = useCredits();
 
   /* 🔔 TOAST */
   const { showToast } = useToast();
@@ -59,11 +65,28 @@ export default function Home() {
     return history.find((h) => h.id === selectedId) ?? null;
   }, [history, selectedId]);
 
-  /* 🚧 CLIENT-SIDE AUTH GUARD */
+  /* 🚧 CLIENT AUTH GUARD (HOOKLARDAN SONRA!) */
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.replace('/auth/login');
+    }
+  }, [userLoading, user, router]);
+
+  if (userLoading) return null;
+  if (!user) return null;
+
+  /* 💳 CREDIT DURUMU */
+  const noCredits =
+    !creditsLoading && typeof credits === 'number' && credits <= 0;
 
   /* ---------------- ACTION ---------------- */
 
   const handleGenerateTryOn = async () => {
+    if (noCredits) {
+      router.push('/upgrade');
+      return;
+    }
+
     setModelImageErrors('');
     setTshirtImageErrors('');
     setResult(null);
@@ -92,18 +115,17 @@ export default function Home() {
         tshirtImage: tshirtImageBase64,
         generateVideo,
       });
-      // ✅ Navbar credit anında güncellensin
-if (typeof response?.remainingCredits === 'number') {
-  window.dispatchEvent(
-    new CustomEvent('credits:update', {
-      detail: { credits: response.remainingCredits },
-    })
-  );
-} else {
-  // remainingCredits dönmüyorsa yine de refresh tetikle
-  window.dispatchEvent(new CustomEvent('credits:update', { detail: {} }));
-}
 
+      // ✅ CREDIT UPDATE EVENT
+      if (typeof response?.remainingCredits === 'number') {
+        window.dispatchEvent(
+          new CustomEvent('credits:update', {
+            detail: { credits: response.remainingCredits },
+          })
+        );
+      } else {
+        window.dispatchEvent(new CustomEvent('credits:update'));
+      }
 
       setResult(response);
 
@@ -118,8 +140,16 @@ if (typeof response?.remainingCredits === 'number') {
       setHistory((prev) => [newItem, ...prev].slice(0, 6));
 
       showToast('Your virtual try-on is ready', 'success');
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+
+      // 🚫 CREDIT BİTTİ → UPGRADE
+      if (e?.error === 'no_credits') {
+        showToast('Credits’in bitti. Upgrade gerekli.', 'error');
+        router.push('/upgrade');
+        return;
+      }
+
       showToast('Try-on failed. Please try again.', 'error');
     } finally {
       setLoading(false);
@@ -157,9 +187,31 @@ if (typeof response?.remainingCredits === 'number') {
           onChange={setGenerateVideo}
         />
 
-        <PrimaryButton onClick={handleGenerateTryOn} disabled={loading}>
-          {loading ? <Spinner /> : 'Generate Try-On'}
+        <PrimaryButton
+          onClick={handleGenerateTryOn}
+          disabled={loading || creditsLoading || noCredits}
+        >
+          {loading ? (
+            <Spinner />
+          ) : noCredits ? (
+            'No Credits'
+          ) : (
+            'Generate Try-On'
+          )}
         </PrimaryButton>
+
+        {noCredits && (
+          <div className="border border-purple-400/30 bg-purple-500/10 rounded-xl p-4 text-sm text-purple-200">
+            Credits’in bitti. Devam etmek için{' '}
+            <button
+              onClick={() => router.push('/upgrade')}
+              className="underline text-purple-300 hover:text-purple-200"
+            >
+              Upgrade
+            </button>
+            .
+          </div>
+        )}
 
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">Result</h2>
