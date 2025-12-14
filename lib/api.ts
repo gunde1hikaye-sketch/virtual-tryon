@@ -11,6 +11,19 @@ export function fileToBase64(file: File): Promise<string> {
 }
 
 // =======================
+// FORMAT FILE SIZE
+// =======================
+export function formatFileSize(bytes: number): string {
+  if (!bytes || bytes === 0) return "0 Bytes";
+
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+}
+
+// =======================
 // TRY-ON API
 // =======================
 export async function generateTryOn(payload: {
@@ -22,7 +35,6 @@ export async function generateTryOn(payload: {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      // auth header burada yoksa backend zaten hata döner
     },
     body: JSON.stringify(payload),
   });
