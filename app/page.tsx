@@ -99,6 +99,18 @@ export default function Home() {
         tshirtImage: tshirtImageBase64,
         generateVideo,
       });
+      // ✅ Navbar credit anında güncellensin
+if (typeof response?.remainingCredits === 'number') {
+  window.dispatchEvent(
+    new CustomEvent('credits:update', {
+      detail: { credits: response.remainingCredits },
+    })
+  );
+} else {
+  // remainingCredits dönmüyorsa yine de refresh tetikle
+  window.dispatchEvent(new CustomEvent('credits:update', { detail: {} }));
+}
+
 
       setResult(response);
 
