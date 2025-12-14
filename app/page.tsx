@@ -60,13 +60,6 @@ export default function Home() {
   }, [history, selectedId]);
 
   /* 🚧 CLIENT-SIDE AUTH GUARD */
-  useEffect(() => {
-    if (!userLoading && !user) {
-      router.push('/auth/login');
-    }
-  }, [userLoading, user, router]);
-
-  if (userLoading || !user) return null;
 
   /* ---------------- ACTION ---------------- */
 
