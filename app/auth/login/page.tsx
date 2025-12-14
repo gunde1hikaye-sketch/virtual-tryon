@@ -1,12 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase-client';
 
 export default function LoginPage() {
-  const router = useRouter();
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,7 +13,7 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -28,14 +25,17 @@ export default function LoginPage() {
       return;
     }
 
+    // 🔒 Session yoksa dur
+    if (!data.session) {
+      setError('Login failed. Please try again.');
+      return;
+    }
+
     /**
-     * 🔑 EN ÖNEMLİ SATIRLAR
-     * Cookie set edilir
-     * App Router cache temizlenir
-     * Middleware + useUser senkron olur
+     * ✅ EN KRİTİK SATIR
+     * Hard redirect → yeni request → middleware user görür
      */
-    router.replace('/');
-    router.refresh();
+    window.location.href = '/';
   };
 
   return (
@@ -70,7 +70,7 @@ export default function LoginPage() {
 
         <p
           className="text-sm text-gray-400 cursor-pointer"
-          onClick={() => router.push('/auth/register')}
+          onClick={() => (window.location.href = '/auth/register')}
         >
           Don’t have an account? Register
         </p>
