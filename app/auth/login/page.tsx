@@ -6,68 +6,69 @@ import { supabase } from '@/lib/supabase-client';
 
 export default function LoginPage() {
   const router = useRouter();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); // 🔴 EN ÖNEMLİ SATIR
+  const handleLogin = async () => {
+    if (loading) return;
+
     setLoading(true);
-    setError('');
+    setError(null);
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    setLoading(false);
-
     if (error) {
       setError(error.message);
+      setLoading(false);
       return;
     }
 
-    if (!data.session) {
-      setError('Login failed. Please try again.');
-      return;
-    }
+    // 🟢 ÇOK ÖNEMLİ: session var mı logla
+    console.log('LOGIN SUCCESS', data.session);
 
-    // ✅ HARD REDIRECT (middleware + cookie %100 senkron)
-    window.location.href = '/';
+    /**
+     * 🔑 Cookie set edilir
+     * App Router cache temizlenir
+     * Middleware + useUser senkron olur
+     */
+    router.replace('/');
+    router.refresh();
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <form
-        onSubmit={handleLogin}
-        className="w-full max-w-sm space-y-4"
-      >
-        <h1 className="text-2xl font-bold text-center">Login</h1>
+      <div className="w-full max-w-sm space-y-4">
+        <h1 className="text-2xl font-bold">Login</h1>
 
         <input
           className="w-full p-2 rounded bg-white/10"
           placeholder="Email"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          required
         />
 
         <input
           type="password"
           className="w-full p-2 rounded bg-white/10"
           placeholder="Password"
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          required
         />
 
-        {error && (
-          <p className="text-red-400 text-sm text-center">{error}</p>
-        )}
+        {error && <p className="text-red-400 text-sm">{error}</p>}
 
+        {/* 🔴 KRİTİK: type="button" */}
         <button
-          type="submit"
+          type="button"
+          onClick={handleLogin}
           disabled={loading}
           className="w-full bg-purple-600 hover:bg-purple-700 p-2 rounded"
         >
@@ -75,12 +76,12 @@ export default function LoginPage() {
         </button>
 
         <p
-          className="text-sm text-gray-400 text-center cursor-pointer"
-          onClick={() => (window.location.href = '/auth/register')}
+          className="text-sm text-gray-400 cursor-pointer"
+          onClick={() => router.push('/auth/register')}
         >
           Don’t have an account? Register
         </p>
-      </form>
+      </div>
     </div>
   );
 }
