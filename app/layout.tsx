@@ -16,13 +16,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${inter.className} min-h-screen bg-black text-white`}
-        style={{ display: 'block' }}
-      >
+    <html lang="en">
+      <body className={inter.className}>
         <ToastProvider>
-          <div className="min-h-screen">{children}</div>
+          {children}
         </ToastProvider>
       </body>
     </html>
