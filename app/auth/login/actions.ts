@@ -1,29 +1,16 @@
 'use server';
 
-import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers'; // cookie okuma yazma işlemi
+import { createClient } from '@supabase/supabase-js';
 
-export async function login(email: string, password: string) {
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name) {
-          return cookies().get(name)?.value;
-        },
-        set(name, value, options) {
-          cookies().set({ name, value, ...options });
-        },
-        remove(name, options) {
-          cookies().set({ name, value: '', ...options });
-        },
-      },
-    }
-  );
+// Supabase URL ve Anonim key'i env'den alıyoruz
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-  const { error } = await supabase.auth.signInWithPassword({
+export async function loginAction(email: string, password: string) {
+  // login işlemi burada yapılacak
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -32,6 +19,5 @@ export async function login(email: string, password: string) {
     return { error: error.message };
   }
 
-  // ✅ cookie yazıldı → middleware artık session görür
-  redirect('/');
+  return { success: true, session: data.session };
 }

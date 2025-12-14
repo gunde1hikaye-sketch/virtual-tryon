@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase-client';
+import { loginAction } from './actions';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,33 +10,22 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
   const handleLogin = async () => {
-    if (loading) return;
-
     setLoading(true);
-    setError(null);
+    setError('');
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const res = await loginAction(email, password);
 
-    if (error) {
-      setError(error.message);
-      setLoading(false);
+    setLoading(false);
+
+    if (res?.error) {
+      setError(res.error);
       return;
     }
 
-    // 🟢 ÇOK ÖNEMLİ: session var mı logla
-    console.log('LOGIN SUCCESS', data.session);
-
-    /**
-     * 🔑 Cookie set edilir
-     * App Router cache temizlenir
-     * Middleware + useUser senkron olur
-     */
+    // 🔑 COOKIE SET EDİLDİ → APP ROUTER GÖRÜR
     router.replace('/');
     router.refresh();
   };
@@ -49,7 +38,6 @@ export default function LoginPage() {
         <input
           className="w-full p-2 rounded bg-white/10"
           placeholder="Email"
-          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -58,16 +46,13 @@ export default function LoginPage() {
           type="password"
           className="w-full p-2 rounded bg-white/10"
           placeholder="Password"
-          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
 
-        {/* 🔴 KRİTİK: type="button" */}
         <button
-          type="button"
           onClick={handleLogin}
           disabled={loading}
           className="w-full bg-purple-600 hover:bg-purple-700 p-2 rounded"
