@@ -34,3 +34,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ======================
+# EXPO / REACT NATIVE
+# ======================
+virtual-tryon-mobile/node_modules
+virtual-tryon-mobile/.expo
+virtual-tryon-mobile/.expo-shared
+virtual-tryon-mobile/web-build
+virtual-tryon-mobile/dist
+virtual-tryon-mobile/.env
+virtual-tryon-mobile/.env.local
+
