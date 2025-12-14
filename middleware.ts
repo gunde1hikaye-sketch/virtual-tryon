@@ -1,10 +1,40 @@
 import { NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 import type { NextRequest } from 'next/server';
 
-export function middleware(req: NextRequest) {
-  return NextResponse.next();
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name) {
+          return req.cookies.get(name)?.value;
+        },
+        set(name, value, options) {
+          res.cookies.set({ name, value, ...options });
+        },
+        remove(name, options) {
+          res.cookies.set({ name, value: '', ...options });
+        },
+      },
+    }
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getSession();
+
+  // Eğer login değilse /auth/login sayfasına at
+  if (!user && !req.nextUrl.pathname.startsWith('/auth')) {
+    return NextResponse.redirect(new URL('/auth/login', req.url));
+  }
+
+  return res;
 }
 
 export const config = {
-  matcher: ['/((?!_next|favicon.ico).*)'],
+  matcher: ['/((?!_next|favicon.ico|auth).*)'],
 };
