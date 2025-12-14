@@ -1,28 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase-client';
+import { register } from './actions';
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleRegister = async () => {
+    setLoading(true);
     setError('');
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    const res = await register(email, password);
 
-    if (error) {
-      setError(error.message);
-    } else {
-      router.push('/auth/login');
+    if (res?.error) {
+      setError(res.error);
+      setLoading(false);
     }
+    // success → redirect server action + middleware
   };
 
   return (
@@ -49,9 +46,10 @@ export default function RegisterPage() {
 
         <button
           onClick={handleRegister}
+          disabled={loading}
           className="w-full bg-purple-600 hover:bg-purple-700 p-2 rounded"
         >
-          Register
+          {loading ? 'Creating account...' : 'Register'}
         </button>
       </div>
     </div>
