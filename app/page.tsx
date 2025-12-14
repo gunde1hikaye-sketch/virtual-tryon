@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Sparkles } from 'lucide-react';
+import { redirect } from 'next/navigation';
 
 import { UploadArea } from '@/components/UploadArea';
 import { ToggleSwitch } from '@/components/ToggleSwitch';
@@ -10,6 +11,7 @@ import { Spinner } from '@/components/Spinner';
 import { useToast } from '@/components/Toast';
 
 import { generateTryOn, fileToBase64 } from '@/lib/api';
+import { useUser } from '@/lib/useUser';
 
 type TryOnResponse = {
   imageUrl?: string;
@@ -29,6 +31,14 @@ type HistoryItem = {
 };
 
 export default function Home() {
+  // 🔐 LOGIN GUARD
+  const { user, loading: userLoading } = useUser();
+
+  if (userLoading) return null;
+  if (!user) redirect('/auth/login');
+
+  // --------------------
+
   const { showToast } = useToast();
 
   const [modelFile, setModelFile] = useState<File | null>(null);
@@ -81,24 +91,26 @@ export default function Home() {
 
       setResult(response);
 
-      // history’ye sadece imageUrl geldiyse ekleyelim
       const newItem: HistoryItem = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
+        id: crypto.randomUUID
+          ? crypto.randomUUID()
+          : Math.random().toString(36).slice(2),
         imageUrl: response.imageUrl,
         videoUrl: response.videoUrl ?? null,
         timestamp: Date.now(),
         originalModelImage: modelImageBase64,
       };
 
-      setHistory((prev) => {
-        const next = [newItem, ...prev];
-        return next.slice(0, 6);
-      });
+      setHistory((prev) => [newItem, ...prev].slice(0, 6));
 
-      // Toast mesajı
-      if (response.imageUrl) showToast('Your virtual try-on is ready', 'success');
-      else showToast('Request completed (no imageUrl returned yet)', 'success');
-    } catch (e: any) {
+      if (response.imageUrl)
+        showToast('Your virtual try-on is ready', 'success');
+      else
+        showToast(
+          'Request completed (no imageUrl returned yet)',
+          'success'
+        );
+    } catch (e) {
       console.error(e);
       showToast('Try-on failed. Please try again.', 'error');
     } finally {
@@ -106,7 +118,8 @@ export default function Home() {
     }
   };
 
-  const display = selected ?? (result ? ({ id: 'current', ...result } as any) : null);
+  const display =
+    selected ?? (result ? ({ id: 'current', ...result } as any) : null);
 
   return (
     <div className="min-h-screen bg-black text-white px-6 py-8 space-y-8">
@@ -144,7 +157,7 @@ export default function Home() {
         {loading ? <Spinner /> : 'Generate Try-On'}
       </PrimaryButton>
 
-      {/* RESULT PANEL */}
+      {/* RESULT */}
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Result</h2>
 
@@ -159,7 +172,7 @@ export default function Home() {
               alt="Try-on result"
               className="w-full max-w-2xl rounded-lg"
             />
-            {display.videoUrl ? (
+            {display.videoUrl && (
               <a
                 href={display.videoUrl}
                 target="_blank"
@@ -168,7 +181,7 @@ export default function Home() {
               >
                 Open video
               </a>
-            ) : null}
+            )}
           </div>
         ) : (
           <pre className="border border-white/10 rounded-xl p-4 bg-white/5 text-xs overflow-auto">
@@ -188,7 +201,9 @@ export default function Home() {
                 key={h.id}
                 onClick={() => setSelectedId(h.id)}
                 className={`border rounded-xl p-3 text-left bg-white/5 hover:bg-white/10 transition ${
-                  selectedId === h.id ? 'border-purple-400/60' : 'border-white/10'
+                  selectedId === h.id
+                    ? 'border-purple-400/60'
+                    : 'border-white/10'
                 }`}
               >
                 <div className="text-xs text-gray-400">
