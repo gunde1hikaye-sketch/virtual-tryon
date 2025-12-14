@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 import type { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
@@ -23,18 +23,24 @@ export async function middleware(req: NextRequest) {
     }
   );
 
+  // ✅ DOĞRU METOD
   const {
     data: { user },
-  } = await supabase.auth.getSession();
+  } = await supabase.auth.getUser();
 
-  // Eğer login değilse /auth/login sayfasına at
+  // 🔐 Login değilse auth sayfalarına yönlendir
   if (!user && !req.nextUrl.pathname.startsWith('/auth')) {
     return NextResponse.redirect(new URL('/auth/login', req.url));
+  }
+
+  // 🔁 Login olmuş kullanıcı auth sayfasına girerse ana sayfaya at
+  if (user && req.nextUrl.pathname.startsWith('/auth')) {
+    return NextResponse.redirect(new URL('/', req.url));
   }
 
   return res;
 }
 
 export const config = {
-  matcher: ['/((?!_next|favicon.ico|auth).*)'],
+  matcher: ['/((?!_next|favicon.ico).*)'],
 };
