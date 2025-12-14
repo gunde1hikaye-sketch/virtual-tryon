@@ -1,10 +1,9 @@
 'use client';
 
-import { LogoutButton } from '@/components/LogoutButton';
-import { useMemo, useState } from 'react';
-import { Sparkles } from 'lucide-react';
-import { redirect } from 'next/navigation';
+import { useMemo, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
+import { Navbar } from '@/components/Navbar';
 import { UploadArea } from '@/components/UploadArea';
 import { ToggleSwitch } from '@/components/ToggleSwitch';
 import { PrimaryButton } from '@/components/PrimaryButton';
@@ -35,6 +34,7 @@ type HistoryItem = {
 
 export default function Home() {
   /* 🔐 AUTH */
+  const router = useRouter();
   const { user, loading: userLoading } = useUser();
 
   /* 🔔 TOAST */
@@ -59,9 +59,14 @@ export default function Home() {
     return history.find((h) => h.id === selectedId) ?? null;
   }, [history, selectedId]);
 
-  /* 🚧 GUARD (HOOKLARDAN SONRA!) */
-  if (userLoading) return null;
-  if (!user) redirect('/auth/login');
+  /* 🚧 CLIENT-SIDE AUTH GUARD */
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.push('/auth/login');
+    }
+  }, [userLoading, user, router]);
+
+  if (userLoading || !user) return null;
 
   /* ---------------- ACTION ---------------- */
 
@@ -122,61 +127,55 @@ export default function Home() {
   /* ---------------- UI ---------------- */
 
   return (
-    <div className="min-h-screen bg-black text-white px-6 py-8 space-y-8">
-      <header className="flex items-center justify-between">
-  <div className="flex items-center gap-3">
-    <Sparkles className="w-7 h-7 text-purple-400" />
-    <h1 className="text-2xl font-bold">Virtual Try-On Studio</h1>
-  </div>
+    <>
+      <Navbar />
 
-  <LogoutButton />
-</header>
-
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <UploadArea
-          label="Model Image"
-          file={modelFile}
-          onFileChange={setModelFile}
-          error={modelImageErrors}
-        />
-        <UploadArea
-          label="T-Shirt Image"
-          file={tshirtFile}
-          onFileChange={setTshirtFile}
-          error={tshirtImageErrors}
-        />
-      </div>
-
-      <ToggleSwitch
-        label="Generate Video"
-        checked={generateVideo}
-        onChange={setGenerateVideo}
-      />
-
-      <PrimaryButton onClick={handleGenerateTryOn} disabled={loading}>
-        {loading ? <Spinner /> : 'Generate Try-On'}
-      </PrimaryButton>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Result</h2>
-
-        {!display ? (
-          <div className="border border-white/10 rounded-xl p-4 bg-white/5 text-sm text-gray-300">
-            No result yet. Upload images and click “Generate”.
-          </div>
-        ) : display.imageUrl ? (
-          <img
-            src={display.imageUrl}
-            alt="Try-on result"
-            className="w-full max-w-2xl rounded-lg"
+      <div className="min-h-screen bg-black text-white px-6 py-8 space-y-8 pt-24">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <UploadArea
+            label="Model Image"
+            file={modelFile}
+            onFileChange={setModelFile}
+            error={modelImageErrors}
           />
-        ) : (
-          <pre className="border border-white/10 rounded-xl p-4 bg-white/5 text-xs overflow-auto">
-            {JSON.stringify(display, null, 2)}
-          </pre>
-        )}
-      </section>
-    </div>
+          <UploadArea
+            label="T-Shirt Image"
+            file={tshirtFile}
+            onFileChange={setTshirtFile}
+            error={tshirtImageErrors}
+          />
+        </div>
+
+        <ToggleSwitch
+          label="Generate Video"
+          checked={generateVideo}
+          onChange={setGenerateVideo}
+        />
+
+        <PrimaryButton onClick={handleGenerateTryOn} disabled={loading}>
+          {loading ? <Spinner /> : 'Generate Try-On'}
+        </PrimaryButton>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Result</h2>
+
+          {!display ? (
+            <div className="border border-white/10 rounded-xl p-4 bg-white/5 text-sm text-gray-300">
+              No result yet. Upload images and click “Generate”.
+            </div>
+          ) : display.imageUrl ? (
+            <img
+              src={display.imageUrl}
+              alt="Try-on result"
+              className="w-full max-w-2xl rounded-lg"
+            />
+          ) : (
+            <pre className="border border-white/10 rounded-xl p-4 bg-white/5 text-xs overflow-auto">
+              {JSON.stringify(display, null, 2)}
+            </pre>
+          )}
+        </section>
+      </div>
+    </>
   );
 }
