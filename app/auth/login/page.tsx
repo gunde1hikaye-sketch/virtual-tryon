@@ -26,9 +26,8 @@ export default function LoginPage() {
     }
 
     // ❌ router.push YOK
-    // ❌ router.replace YOK
     // ❌ router.refresh YOK
-    // ✅ Auth state değişimi otomatik yakalanacak
+    // ✅ useUser() state'i kendisi güncelleyecek
   };
 
   return (
