@@ -16,9 +16,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <ToastProvider>{children}</ToastProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${inter.className} min-h-screen bg-black text-white`}
+        style={{ display: 'block' }}
+      >
+        <ToastProvider>
+          <div className="min-h-screen">{children}</div>
+        </ToastProvider>
       </body>
     </html>
   );
