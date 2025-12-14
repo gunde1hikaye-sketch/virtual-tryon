@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 import { UploadArea } from '@/components/UploadArea';
 import { ToggleSwitch } from '@/components/ToggleSwitch';
@@ -31,11 +31,17 @@ type HistoryItem = {
 };
 
 export default function Home() {
-  // 🔐 LOGIN GUARD
+  // 🔐 LOGIN GUARD (CLIENT-SAFE)
+  const router = useRouter();
   const { user, loading: userLoading } = useUser();
 
-  if (userLoading) return null;
-  if (!user) redirect('/auth/login');
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.push('/auth/login');
+    }
+  }, [userLoading, user, router]);
+
+  if (userLoading || !user) return null;
 
   // --------------------
 
@@ -103,13 +109,11 @@ export default function Home() {
 
       setHistory((prev) => [newItem, ...prev].slice(0, 6));
 
-      if (response.imageUrl)
+      if (response.imageUrl) {
         showToast('Your virtual try-on is ready', 'success');
-      else
-        showToast(
-          'Request completed (no imageUrl returned yet)',
-          'success'
-        );
+      } else {
+        showToast('Request completed (no imageUrl returned yet)', 'success');
+      }
     } catch (e) {
       console.error(e);
       showToast('Try-on failed. Please try again.', 'error');
