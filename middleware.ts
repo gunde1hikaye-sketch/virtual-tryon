@@ -1,4 +1,5 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 export async function middleware(req: NextRequest) {
@@ -26,22 +27,15 @@ export async function middleware(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = req.nextUrl.pathname;
+  const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
 
-  // 🔓 AUTH SAYFALARI SERBEST
-  if (pathname.startsWith('/auth')) {
-    return res;
-  }
-
-  // 🔒 LOGIN DEĞİLSE → AUTH’A AT
-  if (!user) {
-    const loginUrl = new URL('/auth/login', req.url);
-    return NextResponse.redirect(loginUrl);
+  if (!user && !isAuthPage) {
+    return NextResponse.redirect(new URL('/auth/login', req.url));
   }
 
   return res;
 }
 
 export const config = {
-  matcher: ['/((?!_next|favicon.ico).*)'],
+  matcher: ['/', '/((?!_next|favicon.ico|auth).*)'],
 };
