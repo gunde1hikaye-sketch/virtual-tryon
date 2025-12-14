@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase-client";
+import { useEffect, useState } from 'react';
+import { supabase } from './supabase-client';
 
 export function useUser() {
   const [user, setUser] = useState<any>(null);
@@ -9,9 +9,17 @@ export function useUser() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
+      setUser(data.user ?? null);
       setLoading(false);
     });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   return { user, loading };
