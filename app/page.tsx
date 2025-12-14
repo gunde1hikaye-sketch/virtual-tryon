@@ -1,7 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
 
 import { Navbar } from '@/components/Navbar';
 import { UploadArea } from '@/components/UploadArea';
@@ -11,8 +10,6 @@ import { Spinner } from '@/components/Spinner';
 import { useToast } from '@/components/Toast';
 
 import { generateTryOn, fileToBase64 } from '@/lib/api';
-import { useUser } from '@/lib/useUser';
-import { useCredits } from '@/lib/useCredits';
 
 /* ---------------- TYPES ---------------- */
 
@@ -20,7 +17,6 @@ type TryOnResponse = {
   imageUrl?: string;
   videoUrl?: string | null;
   generationTimeMs?: number;
-  ok?: boolean;
   remainingCredits?: number;
   [k: string]: any;
 };
@@ -30,23 +26,11 @@ type HistoryItem = {
   imageUrl?: string;
   videoUrl?: string | null;
   timestamp: number;
-  originalModelImage?: string;
 };
 
 export default function Home() {
-  /* 🔁 ROUTER */
-  const router = useRouter();
-
-  /* 🔐 AUTH */
-  const { user, loading: userLoading } = useUser();
-
-  /* 💳 CREDITS */
-  const { credits, loading: creditsLoading } = useCredits();
-
-  /* 🔔 TOAST */
   const { showToast } = useToast();
 
-  /* 🧠 STATE */
   const [modelFile, setModelFile] = useState<File | null>(null);
   const [tshirtFile, setTshirtFile] = useState<File | null>(null);
   const [generateVideo, setGenerateVideo] = useState(false);
@@ -59,35 +43,12 @@ export default function Home() {
   const [modelImageErrors, setModelImageErrors] = useState('');
   const [tshirtImageErrors, setTshirtImageErrors] = useState('');
 
-  /* 🧮 MEMO — ASLA KOŞULLU DEĞİL */
   const selected = useMemo(() => {
     if (!selectedId) return null;
     return history.find((h) => h.id === selectedId) ?? null;
   }, [history, selectedId]);
 
-  /* 🚧 AUTH GUARD */
-  useEffect(() => {
-    if (!userLoading && !user) {
-      router.replace('/auth/login');
-    }
-  }, [userLoading, user, router]);
-
-  /* ⏳ Loading */
-  if (userLoading) return null;
-  if (!user) return null;
-
-  /* 💳 CREDIT DURUMU */
-  const noCredits =
-    !creditsLoading && typeof credits === 'number' && credits <= 0;
-
-  /* ---------------- ACTION ---------------- */
-
   const handleGenerateTryOn = async () => {
-    if (noCredits) {
-      router.push('/upgrade');
-      return;
-    }
-
     setModelImageErrors('');
     setTshirtImageErrors('');
     setResult(null);
@@ -117,14 +78,6 @@ export default function Home() {
         generateVideo,
       });
 
-      if (typeof response?.remainingCredits === 'number') {
-        window.dispatchEvent(
-          new CustomEvent('credits:update', {
-            detail: { credits: response.remainingCredits },
-          })
-        );
-      }
-
       setResult(response);
 
       const newItem: HistoryItem = {
@@ -132,21 +85,13 @@ export default function Home() {
         imageUrl: response.imageUrl,
         videoUrl: response.videoUrl ?? null,
         timestamp: Date.now(),
-        originalModelImage: modelImageBase64,
       };
 
       setHistory((prev) => [newItem, ...prev].slice(0, 6));
 
       showToast('Your virtual try-on is ready', 'success');
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
-
-      if (e?.error === 'no_credits') {
-        showToast('Credits’in bitti. Upgrade gerekli.', 'error');
-        router.push('/upgrade');
-        return;
-      }
-
       showToast('Try-on failed. Please try again.', 'error');
     } finally {
       setLoading(false);
@@ -155,8 +100,6 @@ export default function Home() {
 
   const display =
     selected ?? (result ? ({ id: 'current', ...result } as any) : null);
-
-  /* ---------------- UI ---------------- */
 
   return (
     <>
@@ -184,11 +127,8 @@ export default function Home() {
           onChange={setGenerateVideo}
         />
 
-        <PrimaryButton
-          onClick={handleGenerateTryOn}
-          disabled={loading || creditsLoading || noCredits}
-        >
-          {loading ? <Spinner /> : noCredits ? 'No Credits' : 'Generate Try-On'}
+        <PrimaryButton onClick={handleGenerateTryOn} disabled={loading}>
+          {loading ? <Spinner /> : 'Generate Try-On'}
         </PrimaryButton>
 
         <section className="space-y-3">
@@ -196,7 +136,7 @@ export default function Home() {
 
           {!display ? (
             <div className="border border-white/10 rounded-xl p-4 bg-white/5 text-sm text-gray-300">
-              No result yet. Upload images and click “Generate”.
+              No result yet.
             </div>
           ) : display.imageUrl ? (
             <img
