@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { login } from './actions';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase-client';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,19 +16,32 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const res = await login(email, password);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    if (res?.error) {
-      setError(res.error);
-      setLoading(false);
+    setLoading(false);
+
+    if (error) {
+      setError(error.message);
+      return;
     }
-    // success → redirect server-action + middleware
+
+    /**
+     * 🔑 EN ÖNEMLİ SATIRLAR
+     * Cookie set edilir
+     * App Router cache temizlenir
+     * Middleware + useUser senkron olur
+     */
+    router.replace('/');
+    router.refresh();
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <div className="w-full max-w-sm space-y-5">
-        <h1 className="text-2xl font-bold text-center">Login</h1>
+      <div className="w-full max-w-sm space-y-4">
+        <h1 className="text-2xl font-bold">Login</h1>
 
         <input
           className="w-full p-2 rounded bg-white/10"
@@ -45,27 +58,21 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        {error && (
-          <p className="text-red-400 text-sm text-center">{error}</p>
-        )}
+        {error && <p className="text-red-400 text-sm">{error}</p>}
 
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="w-full bg-purple-600 hover:bg-purple-700 p-2 rounded transition"
+          className="w-full bg-purple-600 hover:bg-purple-700 p-2 rounded"
         >
           {loading ? 'Logging in...' : 'Login'}
         </button>
 
-        {/* 👇 REGISTER LINK */}
-        <p className="text-sm text-center text-gray-400">
-          Don’t have an account?{' '}
-          <span
-            onClick={() => router.push('/auth/register')}
-            className="text-purple-400 hover:underline cursor-pointer"
-          >
-            Register
-          </span>
+        <p
+          className="text-sm text-gray-400 cursor-pointer"
+          onClick={() => router.push('/auth/register')}
+        >
+          Don’t have an account? Register
         </p>
       </div>
     </div>
