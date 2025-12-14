@@ -11,8 +11,8 @@ import { Spinner } from '@/components/Spinner';
 import { useToast } from '@/components/Toast';
 
 import { generateTryOn, fileToBase64 } from '@/lib/api';
-import { useCredits } from '@/lib/useCredits';
 import { useUser } from '@/lib/useUser';
+import { useCredits } from '@/lib/useCredits';
 
 /* ---------------- TYPES ---------------- */
 
@@ -34,7 +34,7 @@ type HistoryItem = {
 };
 
 export default function Home() {
-  /* 🔐 ROUTER */
+  /* 🔁 ROUTER */
   const router = useRouter();
 
   /* 🔐 AUTH */
@@ -59,7 +59,13 @@ export default function Home() {
   const [modelImageErrors, setModelImageErrors] = useState('');
   const [tshirtImageErrors, setTshirtImageErrors] = useState('');
 
-  /* 🔐 CLIENT-SIDE AUTH GUARD */
+  /* 🧮 MEMO (HER ZAMAN ÇALIŞIR) */
+  const selected = useMemo(() => {
+    if (!selectedId) return null;
+    return history.find((h) => h.id === selectedId) ?? null;
+  }, [history, selectedId]);
+
+  /* 🚧 AUTH GUARD (HOOK’LARDAN SONRA) */
   useEffect(() => {
     if (!userLoading && !user) {
       router.replace('/auth/login');
@@ -68,12 +74,6 @@ export default function Home() {
 
   if (userLoading) return null;
   if (!user) return null;
-
-  /* 🧮 MEMO */
-  const selected = useMemo(() => {
-    if (!selectedId) return null;
-    return history.find((h) => h.id === selectedId) ?? null;
-  }, [history, selectedId]);
 
   /* 💳 CREDIT DURUMU */
   const noCredits =
@@ -116,7 +116,6 @@ export default function Home() {
         generateVideo,
       });
 
-      // 🔄 CREDIT ANINDA GÜNCELLENSİN
       if (typeof response?.remainingCredits === 'number') {
         window.dispatchEvent(
           new CustomEvent('credits:update', {
@@ -188,27 +187,8 @@ export default function Home() {
           onClick={handleGenerateTryOn}
           disabled={loading || creditsLoading || noCredits}
         >
-          {loading ? (
-            <Spinner />
-          ) : noCredits ? (
-            'No Credits'
-          ) : (
-            'Generate Try-On'
-          )}
+          {loading ? <Spinner /> : noCredits ? 'No Credits' : 'Generate Try-On'}
         </PrimaryButton>
-
-        {noCredits && (
-          <div className="border border-purple-400/30 bg-purple-500/10 rounded-xl p-4 text-sm text-purple-200">
-            Credits’in bitti. Devam etmek için{' '}
-            <button
-              onClick={() => router.push('/upgrade')}
-              className="underline text-purple-300 hover:text-purple-200"
-            >
-              Upgrade
-            </button>
-            .
-          </div>
-        )}
 
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">Result</h2>
