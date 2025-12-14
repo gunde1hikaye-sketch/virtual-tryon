@@ -1,78 +1,55 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase-server";
+import { run } from "@fal-ai/serverless-client";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-    // ======================
-    // AUTH HEADER
-    // ======================
-    const authHeader = req.headers.get("authorization");
+    const body = await req.json();
+    const { modelImage, tshirtImage } = body;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!modelImage || !tshirtImage) {
       return NextResponse.json(
-        { error: "unauthorized", message: "Missing token" },
-        { status: 401 }
+        { error: "missing_images" },
+        { status: 400 }
       );
     }
 
-    const token = authHeader.replace("Bearer ", "");
+    console.log("📩 Try-on request received");
 
-    // ======================
-    // USER DOĞRULA
-    // ======================
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseAdmin.auth.getUser(token);
+    const result: any = await run("fal-ai/cat-vton", {
+      input: {
+        human_image: modelImage,
+        garment_image: tshirtImage,
+      },
+    });
 
-    if (userError || !user) {
+    console.log("✅ RAW fal.ai result:", result);
+
+    // 🔥 GÜVENLİ IMAGE URL ÇIKARMA
+    const imageUrl =
+      result?.image?.url ??
+      result?.output?.image?.url ??
+      result?.images?.[0]?.url ??
+      null;
+
+    if (!imageUrl) {
       return NextResponse.json(
-        { error: "unauthorized", message: "Invalid session" },
-        { status: 401 }
-      );
-    }
-
-    // ======================
-    // 🔥 KREDİ DÜŞ (RPC)
-    // ======================
-    const { data: remainingCredits, error: creditError } =
-      await supabaseAdmin.rpc("consume_credit");
-
-    if (creditError) {
-      console.error("❌ CREDIT ERROR:", creditError);
-      return NextResponse.json(
-        { error: "credit_error", message: "Credit check failed" },
+        {
+          error: "no_image_returned",
+          raw: result,
+        },
         { status: 500 }
       );
     }
 
-    if (remainingCredits === -1) {
-      return NextResponse.json(
-        {
-          error: "no_credits",
-          message: "Deneme hakkın bitti",
-        },
-        { status: 402 }
-      );
-    }
-
-    console.log("✅ CREDIT USED. REMAINING:", remainingCredits);
-
-    // ======================
-    // ⏩ BURADAN SONRASI TRY-ON
-    // (fal.ai / kling burada çalışacak)
-    // ======================
-
     return NextResponse.json({
-      ok: true,
-      remainingCredits,
+      imageUrl,
     });
   } catch (err: any) {
-    console.error("❌ SERVER ERROR:", err);
+    console.error("❌ fal.ai error:", err);
     return NextResponse.json(
-      { error: "server_error", message: err?.message ?? "Unknown error" },
+      { error: err?.message ?? "fal_failed" },
       { status: 500 }
     );
   }
