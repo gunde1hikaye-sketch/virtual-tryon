@@ -1,5 +1,6 @@
 'use client';
 
+import { LogoutButton } from '@/components/LogoutButton';
 import { useMemo, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { redirect } from 'next/navigation';
@@ -122,10 +123,15 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black text-white px-6 py-8 space-y-8">
-      <header className="flex items-center gap-3">
-        <Sparkles className="w-7 h-7 text-purple-400" />
-        <h1 className="text-2xl font-bold">Virtual Try-On Studio</h1>
-      </header>
+      <header className="flex items-center justify-between">
+  <div className="flex items-center gap-3">
+    <Sparkles className="w-7 h-7 text-purple-400" />
+    <h1 className="text-2xl font-bold">Virtual Try-On Studio</h1>
+  </div>
+
+  <LogoutButton />
+</header>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <UploadArea
