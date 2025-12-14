@@ -1,28 +1,46 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
+  let response = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  });
 
-  // Supabase client (server-side)
-  const supabase = createMiddlewareClient({ req, res });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          response.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options: any) {
+          response.cookies.set({ name, value: '', ...options });
+        },
+      },
+    }
+  );
 
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  const { pathname } = req.nextUrl;
+  const pathname = req.nextUrl.pathname;
 
   // 🔓 Auth sayfaları serbest
   if (pathname.startsWith('/auth')) {
     if (session) {
-      // login olmuş kullanıcı auth sayfasına girmesin
       return NextResponse.redirect(new URL('/', req.url));
     }
-    return res;
+    return response;
   }
 
-  // 🔐 Korumalı alanlar
+  // 🔐 Korumalı sayfalar
   const protectedRoutes = ['/'];
 
   const isProtected = protectedRoutes.some(
@@ -33,13 +51,12 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', req.url));
   }
 
-  return res;
+  return response;
 }
 
-// Middleware hangi yolları kapsasın?
 export const config = {
   matcher: [
-    '/',                // ana sayfa
+    '/',
     '/((?!_next|favicon.ico|api).*)',
   ],
 };
