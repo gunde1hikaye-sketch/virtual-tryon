@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { run } from "@fal-ai/serverless-client";
 
 export const dynamic = "force-dynamic";
 
@@ -15,41 +14,19 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log("📩 Try-on request received");
+    // ⏱ fake processing delay
+    await new Promise((res) => setTimeout(res, 1500));
 
-    const result: any = await run("fal-ai/cat-vton", {
-      input: {
-        human_image: modelImage,
-        garment_image: tshirtImage,
-      },
-    });
-
-    console.log("✅ RAW fal.ai result:", result);
-
-    // 🔥 GÜVENLİ IMAGE URL ÇIKARMA
-    const imageUrl =
-      result?.image?.url ??
-      result?.output?.image?.url ??
-      result?.images?.[0]?.url ??
-      null;
-
-    if (!imageUrl) {
-      return NextResponse.json(
-        {
-          error: "no_image_returned",
-          raw: result,
-        },
-        { status: 500 }
-      );
-    }
-
+    // 🧪 MOCK RESULT (fal.ai yerine)
     return NextResponse.json({
-      imageUrl,
+      imageUrl:
+        "https://images.unsplash.com/photo-1520975916090-3105956dac38?w=1024",
+      generationTimeMs: 1500,
+      mock: true,
     });
   } catch (err: any) {
-    console.error("❌ fal.ai error:", err);
     return NextResponse.json(
-      { error: err?.message ?? "fal_failed" },
+      { error: err?.message ?? "mock_failed" },
       { status: 500 }
     );
   }
