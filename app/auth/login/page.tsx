@@ -1,11 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase-client';
+import { login } from './actions';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,18 +13,13 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const res = await login(email, password);
 
-    setLoading(false);
-
-    if (error) {
-      setError(error.message);
-    } else {
-      router.push('/');
+    if (res?.error) {
+      setError(res.error);
+      setLoading(false);
     }
+    // success → redirect middleware + server action halleder
   };
 
   return (
@@ -58,13 +51,6 @@ export default function LoginPage() {
         >
           {loading ? 'Logging in...' : 'Login'}
         </button>
-
-        <p
-          className="text-sm text-gray-400 cursor-pointer"
-          onClick={() => router.push('/auth/register')}
-        >
-          Don’t have an account? Register
-        </p>
       </div>
     </div>
   );
