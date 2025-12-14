@@ -1,12 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { loginAction } from './actions';
+import { supabase } from '@/lib/supabase-client';
 
 export default function LoginPage() {
-  const router = useRouter();
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,18 +13,22 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const res = await loginAction(email, password);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     setLoading(false);
 
-    if (res?.error) {
-      setError(res.error);
+    if (error) {
+      setError(error.message);
       return;
     }
 
-    // 🔑 COOKIE SET EDİLDİ → APP ROUTER GÖRÜR
-    router.replace('/');
-    router.refresh();
+    // ❌ router.push YOK
+    // ❌ router.replace YOK
+    // ❌ router.refresh YOK
+    // ✅ Auth state değişimi otomatik yakalanacak
   };
 
   return (
@@ -59,13 +60,6 @@ export default function LoginPage() {
         >
           {loading ? 'Logging in...' : 'Login'}
         </button>
-
-        <p
-          className="text-sm text-gray-400 cursor-pointer"
-          onClick={() => router.push('/auth/register')}
-        >
-          Don’t have an account? Register
-        </p>
       </div>
     </div>
   );

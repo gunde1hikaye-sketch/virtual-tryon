@@ -59,19 +59,20 @@ export default function Home() {
   const [modelImageErrors, setModelImageErrors] = useState('');
   const [tshirtImageErrors, setTshirtImageErrors] = useState('');
 
-  /* 🧮 MEMO (HER ZAMAN ÇALIŞIR) */
+  /* 🧮 MEMO — ASLA KOŞULLU DEĞİL */
   const selected = useMemo(() => {
     if (!selectedId) return null;
     return history.find((h) => h.id === selectedId) ?? null;
   }, [history, selectedId]);
 
-  /* 🚧 AUTH GUARD (HOOK’LARDAN SONRA) */
+  /* 🚧 AUTH GUARD */
   useEffect(() => {
     if (!userLoading && !user) {
       router.replace('/auth/login');
     }
   }, [userLoading, user, router]);
 
+  /* ⏳ Loading */
   if (userLoading) return null;
   if (!user) return null;
 
