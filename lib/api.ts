@@ -1,3 +1,5 @@
+import { supabase } from '@/lib/supabase-client';
+
 // =======================
 // FILE → BASE64
 // =======================
@@ -14,27 +16,36 @@ export function fileToBase64(file: File): Promise<string> {
 // FORMAT FILE SIZE
 // =======================
 export function formatFileSize(bytes: number): string {
-  if (!bytes || bytes === 0) return "0 Bytes";
+  if (!bytes || bytes === 0) return '0 Bytes';
 
   const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 }
 
 // =======================
-// TRY-ON API
+// TRY-ON API (AUTH'LU)
 // =======================
 export async function generateTryOn(payload: {
   modelImage: string;
   tshirtImage: string;
   generateVideo?: boolean;
 }) {
-  const res = await fetch("/api/tryon", {
-    method: "POST",
+  // 🔐 Supabase session → access token
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const res = await fetch('/api/tryon', {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`, // ✅ KRİTİK
     },
     body: JSON.stringify(payload),
   });
@@ -49,7 +60,7 @@ export async function generateTryOn(payload: {
   }
 
   if (!res.ok) {
-    throw data ?? { error: "request_failed" };
+    throw data ?? { error: 'request_failed' };
   }
 
   return data;
