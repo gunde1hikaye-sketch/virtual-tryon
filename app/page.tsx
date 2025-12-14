@@ -1,6 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
 import { Navbar } from '@/components/Navbar';
 import { UploadArea } from '@/components/UploadArea';
 import { ToggleSwitch } from '@/components/ToggleSwitch';
@@ -10,6 +12,7 @@ import { useToast } from '@/components/Toast';
 
 import { generateTryOn, fileToBase64 } from '@/lib/api';
 import { useCredits } from '@/lib/useCredits';
+import { useUser } from '@/lib/useUser';
 
 /* ---------------- TYPES ---------------- */
 
@@ -31,6 +34,12 @@ type HistoryItem = {
 };
 
 export default function Home() {
+  /* 🔐 ROUTER */
+  const router = useRouter();
+
+  /* 🔐 AUTH */
+  const { user, loading: userLoading } = useUser();
+
   /* 💳 CREDITS */
   const { credits, loading: creditsLoading } = useCredits();
 
@@ -50,6 +59,16 @@ export default function Home() {
   const [modelImageErrors, setModelImageErrors] = useState('');
   const [tshirtImageErrors, setTshirtImageErrors] = useState('');
 
+  /* 🔐 CLIENT-SIDE AUTH GUARD */
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.replace('/auth/login');
+    }
+  }, [userLoading, user, router]);
+
+  if (userLoading) return null;
+  if (!user) return null;
+
   /* 🧮 MEMO */
   const selected = useMemo(() => {
     if (!selectedId) return null;
@@ -64,7 +83,7 @@ export default function Home() {
 
   const handleGenerateTryOn = async () => {
     if (noCredits) {
-      window.location.href = '/upgrade';
+      router.push('/upgrade');
       return;
     }
 
@@ -97,7 +116,7 @@ export default function Home() {
         generateVideo,
       });
 
-      // ✅ CREDIT UPDATE EVENT
+      // 🔄 CREDIT ANINDA GÜNCELLENSİN
       if (typeof response?.remainingCredits === 'number') {
         window.dispatchEvent(
           new CustomEvent('credits:update', {
@@ -124,7 +143,7 @@ export default function Home() {
 
       if (e?.error === 'no_credits') {
         showToast('Credits’in bitti. Upgrade gerekli.', 'error');
-        window.location.href = '/upgrade';
+        router.push('/upgrade');
         return;
       }
 
@@ -181,12 +200,12 @@ export default function Home() {
         {noCredits && (
           <div className="border border-purple-400/30 bg-purple-500/10 rounded-xl p-4 text-sm text-purple-200">
             Credits’in bitti. Devam etmek için{' '}
-            <a
-              href="/upgrade"
+            <button
+              onClick={() => router.push('/upgrade')}
               className="underline text-purple-300 hover:text-purple-200"
             >
               Upgrade
-            </a>
+            </button>
             .
           </div>
         )}
